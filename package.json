@@ -1,0 +1,32 @@
+{
+  "name": "omni-test",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Cucumber BDD automation framework with Playwright",
+  "scripts": {
+    "test": "npm run test:bdd",
+    "test:bdd": "cucumber-js --config cucumber.config.js",
+    "test:ui": "cucumber-js --config cucumber.config.js --tags '@orangehrm'",
+    "test:api": "cucumber-js --config cucumber.config.js --tags '@api'",
+    "test:headed": "HEADLESS=false cucumber-js --config cucumber.config.js",
+    "test:smoke": "cucumber-js --config cucumber.config.js --tags '@smoke'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cucumber/cucumber": "^12.2.0",
+    "dotenv": "^17.2.1",
+    "playwright": "^1.55.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^24.13.3",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  },
+  "main": "cucumber.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
