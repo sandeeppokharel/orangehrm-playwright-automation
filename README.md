@@ -46,6 +46,23 @@ The OrangeHRM demo defaults are `Admin` and `admin123`.
 
 The HTML report is generated at `reports/cucumber-report.html`.
 
+## CI
+
+This repository includes a GitHub Actions workflow for automated validation on every push and pull request.
+
+Workflow file:
+
+- `.github/workflows/playwright-ci.yml`
+
+The workflow installs dependencies, sets up Playwright Chromium, runs the TypeScript check, and executes the OrangeHRM UI suite with:
+
+```sh
+npm run typecheck
+npm run test:ui
+```
+
+This gives the project a real CI signal for browser automation quality before merge.
+
 ## MCP agent hook for local OrangeHRM runs
 
 This project also supports a local MCP-style agent notification flow that runs
