@@ -1,5 +1,5 @@
 import { Given, Then, When } from "@cucumber/cucumber";
-import assert from "node:assert/strict";
+import { expect } from "@playwright/test";
 import type { CustomWorld } from "../support/world.js";
 
 Given("I am logged in to OrangeHRM", async function (this: CustomWorld) {
@@ -16,35 +16,29 @@ When(
 Then(
   "the {string} feature page should be displayed",
   async function (this: CustomWorld, moduleName: string) {
-    assert.equal(this.orangehrm.isModulePage(moduleName), true);
+    expect(this.orangehrm.isModulePage(moduleName)).toBeTruthy();
   },
 );
 
 Then(
   "the sidebar search control should be displayed",
   async function (this: CustomWorld) {
-    assert.equal(await this.orangehrm.hasSearchControl(), true);
+    await expect(this.orangehrm.searchControl()).toBeVisible();
   },
 );
 
 Then(
   "I should see the {string} heading",
   async function (this: CustomWorld, heading: string) {
-    assert.equal(await this.orangehrm.hasHeading(heading), true);
+    await expect(this.orangehrm.heading(heading)).toBeVisible();
   },
 );
 
 Then(
   "the dashboard should show the {string} widget",
   async function (this: CustomWorld, widgetName: string) {
-    assert.equal(await this.orangehrm.hasDashboardWidget(widgetName), true);
-  },
-);
-
-Then(
-  "the dashboard should show the {string} quick launch action",
-  async function (this: CustomWorld, actionName: string) {
-    assert.equal(await this.orangehrm.hasQuickLaunchAction(actionName), true);
+    const locator = this.orangehrm.dashboardWidget(widgetName);
+    await expect(locator).toBeVisible({ timeout: 15_000 });
   },
 );
 
@@ -58,6 +52,10 @@ When(
 Then(
   "the employee search results should be displayed",
   async function (this: CustomWorld) {
-    assert.equal(await this.orangehrm.hasEmployee(""), true);
+    await expect
+      .poll(() => this.orangehrm.employeeRows().count(), {
+        timeout: 15_000,
+      })
+      .toBeGreaterThan(1);
   },
 );

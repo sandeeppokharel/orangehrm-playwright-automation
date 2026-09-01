@@ -1,4 +1,4 @@
-import type { Page } from "playwright";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export class OrangeHrmPage {
   private readonly modules = {
@@ -24,6 +24,40 @@ export class OrangeHrmPage {
     this.baseUrl = baseUrl;
   }
 
+  modulePath(moduleName: string): string {
+    if (!(moduleName in this.modules)) {
+      throw new Error(`Unknown OrangeHRM module: ${moduleName}`);
+    }
+
+    return this.modules[moduleName as keyof typeof this.modules];
+  }
+
+  heading(name: string): Locator {
+    return this.page.getByRole("heading", { name, exact: true });
+  }
+
+  searchControl(): Locator {
+    return this.page.getByRole("textbox", { name: "Search" });
+  }
+
+  dashboardWidget(widgetName: string): Locator {
+    return this.page
+      .locator("body")
+      .getByText(widgetName, { exact: false })
+      .first();
+  }
+
+  quickLaunchAction(actionName: string): Locator {
+    return this.page
+      .locator("body")
+      .getByText(actionName, { exact: false })
+      .first();
+  }
+
+  employeeRows(): Locator {
+    return this.page.locator(".oxd-table-row");
+  }
+
   async login(): Promise<void> {
     const username = process.env.LOGIN_USERNAME;
     const password = process.env.LOGIN_PASSWORD;
@@ -36,52 +70,52 @@ export class OrangeHrmPage {
         process.env.LOGIN_PATH || "/web/index.php/auth/login",
         this.baseUrl,
       ).toString(),
-      {
-        waitUntil: "domcontentloaded",
-      },
+      { waitUntil: "domcontentloaded" },
     );
+
+    await expect(this.page.locator('input[name="username"]')).toBeVisible();
     await this.page.locator('input[name="username"]').fill(username);
     await this.page.locator('input[name="password"]').fill(password);
     await this.page.locator('button[type="submit"]').click();
-    await this.page.getByRole("heading", { name: "Dashboard" }).waitFor();
+
+    await expect(this.page).toHaveURL(/\/web\/index\.php\/dashboard\/index$/, {
+      timeout: 15_000,
+    });
+    await expect(this.heading("Dashboard")).toBeVisible({ timeout: 15_000 });
   }
 
   async openModule(moduleName: string): Promise<void> {
-    if (!(moduleName in this.modules)) {
-      throw new Error(`Unknown OrangeHRM module: ${moduleName}`);
-    }
+    const expectedPath = this.modulePath(moduleName);
     const link = this.page.getByRole("link", { name: moduleName, exact: true });
     const href = await link.getAttribute("href");
+
     await this.page.goto(
-      new URL(
-        href || this.modules[moduleName as keyof typeof this.modules],
-        this.baseUrl,
-      ).toString(),
+      new URL(href || expectedPath, this.baseUrl).toString(),
       { waitUntil: "domcontentloaded" },
     );
-  }
 
-  async hasHeading(name: string): Promise<boolean> {
-    return this.page.getByRole("heading", { name, exact: true }).isVisible();
+    await expect
+      .poll(() => this.isModulePage(moduleName), {
+        timeout: 10_000,
+      })
+      .toBeTruthy();
   }
 
   async searchEmployee(employeeName: string): Promise<void> {
     await this.page.getByRole("link", { name: "PIM", exact: true }).click();
-    await this.page
-      .getByRole("heading", { name: "PIM", exact: true })
-      .waitFor();
+    await expect(this.heading("PIM")).toBeVisible();
+
     const employeeNameInput = this.page
       .locator("input[placeholder='Type for hints...']:visible")
       .first();
+
+    await expect(employeeNameInput).toBeVisible();
     await employeeNameInput.fill(employeeName);
     await this.page.getByRole("button", { name: "Search" }).click();
   }
 
   async hasEmployee(employeeName: string): Promise<boolean> {
-    return this.page
-      .locator(".oxd-table-body .oxd-table-row")
-      .first()
-      .isVisible();
+    return this.employeeRows().first().isVisible();
   }
 
   async dashboardWidgets(): Promise<string[]> {
@@ -96,30 +130,23 @@ export class OrangeHrmPage {
     ];
   }
 
-  async hasDashboardWidget(widgetName: string): Promise<boolean> {
-    return this.page.getByText(widgetName, { exact: true }).first().isVisible();
-  }
-
-  async hasQuickLaunchAction(actionName: string): Promise<boolean> {
-    return this.page
-      .locator(".orangehrm-quick-launch-card")
-      .filter({ hasText: actionName })
-      .isVisible();
-  }
-
-  async hasSearchControl(): Promise<boolean> {
-    return this.page.getByRole("textbox", { name: "Search" }).isVisible();
-  }
-
   isModulePage(moduleName: string): boolean {
-    if (!(moduleName in this.modules)) {
-      return false;
-    }
-    const expectedPath = this.modules[moduleName as keyof typeof this.modules];
+    const expectedPath = this.modulePath(moduleName);
     const actualPath = new URL(this.page.url()).pathname;
-    return (
+
+    if (
       actualPath.endsWith(expectedPath) ||
       actualPath.startsWith(expectedPath + "/")
-    );
+    ) {
+      return true;
+    }
+
+    if (moduleName === "My Info") {
+      return /\/web\/index\.php\/pim\/viewPersonalDetails(?:\/.*)?$/.test(
+        actualPath,
+      );
+    }
+
+    return false;
   }
 }

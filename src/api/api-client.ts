@@ -1,62 +1,54 @@
+import type { APIResponse, Page } from "playwright";
+
 export class ApiClient {
   private readonly baseUrl: string;
-  private readonly cookies = new Map<string, string>();
+  private readonly page: Page;
 
-  constructor(baseUrl: string) {
+  constructor(baseUrl: string, page: Page) {
     this.baseUrl = baseUrl;
+    this.page = page;
   }
 
-  async get(path: string): Promise<Response> {
-    const response = await fetch(this.url(path), {
-      headers: this.headers(),
-    });
-    this.storeCookies(response);
-    return response;
-  }
-
-  async login(username: string, password: string): Promise<Response> {
-    await this.get("/auth/login");
-    const response = await fetch(this.url("/auth/validate"), {
-      method: "POST",
+  async get(path: string): Promise<APIResponse> {
+    return this.page.request.get(this.url(path), {
       headers: {
-        ...this.headers(),
-        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
       },
-      body: new URLSearchParams({ username, password }),
-      redirect: "manual",
+      failOnStatusCode: false,
     });
-    this.storeCookies(response);
-    return response;
   }
 
-  private headers(): Record<string, string> {
-    const cookie = [...this.cookies]
-      .map(([name, value]) => `${name}=${value}`)
-      .join("; ");
-    return cookie
-      ? {
+  async login(username: string, password: string): Promise<APIResponse> {
+    const loginUrl = new URL(
+      "/web/index.php/auth/login",
+      this.baseUrl,
+    ).toString();
+    await this.page.goto(loginUrl, { waitUntil: "domcontentloaded" });
+
+    const csrfToken = await this.page
+      .locator('input[name="_token"]')
+      .inputValue();
+
+    return this.page.request.post(
+      new URL("/web/index.php/auth/validate", this.baseUrl).toString(),
+      {
+        form: {
+          _token: csrfToken,
+          username,
+          password,
+        },
+        headers: {
           Accept: "application/json",
-          Cookie: cookie,
           "X-Requested-With": "XMLHttpRequest",
-        }
-      : { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" };
+        },
+        failOnStatusCode: false,
+      },
+    );
   }
 
-  private url(path: string): URL {
+  private url(path: string): string {
     const base = this.baseUrl.endsWith("/") ? this.baseUrl : `${this.baseUrl}/`;
-    return new URL(path.replace(/^\//, ""), base);
-  }
-
-  private storeCookies(response: Response): void {
-    for (const setCookie of response.headers.getSetCookie()) {
-      const [nameValue] = setCookie.split(";");
-      const separator = nameValue.indexOf("=");
-      if (separator > 0) {
-        this.cookies.set(
-          nameValue.slice(0, separator),
-          nameValue.slice(separator + 1),
-        );
-      }
-    }
+    return new URL(path.replace(/^\//, ""), base).toString();
   }
 }

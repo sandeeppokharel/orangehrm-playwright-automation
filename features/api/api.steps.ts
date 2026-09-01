@@ -1,13 +1,14 @@
 import { Given, Then, When } from "@cucumber/cucumber";
-import assert from "node:assert/strict";
+import { expect } from "@playwright/test";
+import type { APIResponse } from "playwright";
 import { ApiClient } from "../../src/api/api-client.ts";
 import type { CustomWorld } from "../support/world.js";
 
-let response: Response;
+let response: APIResponse;
 let client: ApiClient;
 
 function configuredClient(world: CustomWorld): ApiClient {
-  return new ApiClient(process.env.API_BASE_URL || world.baseUrl);
+  return new ApiClient(process.env.API_BASE_URL || world.baseUrl, world.page);
 }
 
 When("I request the API login page", async function (this: CustomWorld) {
@@ -44,12 +45,9 @@ Given(
 
     client = configuredClient(this);
     response = await client.login(username, password);
-    assert.equal(response.status, 302);
-    assert.match(
-      response.headers.get("location") || "",
-      /\/dashboard\/index$/,
-      "OrangeHRM rejected the configured credentials; check LOGIN_USERNAME and LOGIN_PASSWORD in .env",
-    );
+
+    expect(response.status()).toBe(200);
+    expect(response.url()).toMatch(/\/dashboard\/index$/);
   },
 );
 
@@ -63,18 +61,15 @@ When(
 Then(
   "the API response status should be {int}",
   function (expectedStatus: number) {
-    assert.equal(response.status, expectedStatus);
+    expect(response.status()).toBe(expectedStatus);
   },
 );
 
 Then("the API login should redirect to the dashboard", function () {
-  const location = response.headers.get("location") || "";
-  assert.match(location, /\/dashboard\/index$/);
+  expect(response.url()).toMatch(/\/dashboard\/index$/);
 });
 
 Then("the API response should be successful", function () {
-  assert.ok(
-    response.status >= 200 && response.status < 400,
-    `Expected a successful response, got ${response.status}`,
-  );
+  expect(response.status()).toBeGreaterThanOrEqual(200);
+  expect(response.status()).toBeLessThan(400);
 });

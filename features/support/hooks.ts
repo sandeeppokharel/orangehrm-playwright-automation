@@ -1,4 +1,5 @@
 import {
+  After,
   AfterAll,
   Before,
   BeforeAll,
@@ -23,6 +24,10 @@ Before(async function (this: CustomWorld) {
   this.context = await browser.newContext();
   this.page = await this.context.newPage();
   this.orangehrm = new OrangeHrmPage(this.page, this.baseUrl);
+});
+
+After(async function (this: CustomWorld) {
+  await this.context?.close();
 });
 
 AfterAll(async function () {

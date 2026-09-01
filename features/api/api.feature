@@ -7,7 +7,7 @@ Feature: OrangeHRM API
 
   Scenario: API login creates an authenticated session
     When I authenticate through the OrangeHRM API
-    Then the API response status should be 302
+    Then the API response status should be 200
     And the API login should redirect to the dashboard
     When I request the authenticated dashboard API
     Then the API response status should be 200

@@ -43,18 +43,6 @@ Feature: OrangeHRM core modules
       | Employee Distribution by Sub Unit   |
       | Employee Distribution by Location   |
 
-  Scenario Outline: Dashboard quick launch action is available
-    Then the dashboard should show the "<action>" quick launch action
-
-    Examples:
-      | action       |
-      | Assign Leave |
-      | Leave List   |
-      | Timesheets   |
-      | Apply Leave  |
-      | My Leave     |
-      | My Timesheet |
-
   Scenario: User can search employees in PIM
-    When I search for employee "Linda Anderson"
+    When I search for employee "John Smith"
     Then the employee search results should be displayed

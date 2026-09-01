@@ -11,6 +11,8 @@
     "test:api": "cucumber-js --config cucumber.config.js --tags '@api'",
     "test:headed": "HEADLESS=false cucumber-js --config cucumber.config.js",
     "test:smoke": "cucumber-js --config cucumber.config.js --tags '@smoke'",
+    "test:agent": "node scripts/test-with-agent.mjs",
+    "mcp:agent": "node scripts/mcp-agent-server.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
